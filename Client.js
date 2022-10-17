@@ -19,6 +19,7 @@ function mixin(obj1, obj2) {
 
 function Client(uri) {
 	EventEmitter.call(this);
+	this.translator = new BinaryTranslator()
 	this.uri = uri;
 	this.ws = undefined;
 	this.serverTimeOffset = 0;
@@ -81,8 +82,10 @@ Client.prototype.connect = function() {
 		// browseroni
 		this.ws = new WebSocket(this.uri);
 	}
+	this.ws.binaryType = "arraybuffer"
 	var self = this;
 	this.ws.addEventListener("close", function(evt) {
+		self.translator.reset()
 		self.user = undefined;
 		self.participantId = undefined;
 		self.channel = undefined;
@@ -131,7 +134,8 @@ Client.prototype.connect = function() {
 		self.emit("status", "Joining channel...");
 	});
 	this.ws.addEventListener("message", function(evt) {
-		var transmission = JSON.parse(evt.data);
+		var transmission = self.translator.receive(evt.data)
+		console.log(transmission)
 		for(var i = 0; i < transmission.length; i++) {
 			var msg = transmission[i];
 			self.emit(msg.m, msg);
@@ -177,7 +181,7 @@ Client.prototype.send = function(raw) {
 };
 
 Client.prototype.sendArray = function(arr) {
-	this.send(JSON.stringify(arr));
+	this.send(this.translator.send(arr));
 };
 
 Client.prototype.setChannel = function(id, set) {

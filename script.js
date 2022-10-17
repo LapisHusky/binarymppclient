@@ -2587,18 +2587,12 @@ Rect.prototype.contains = function(x, y) {
 	}
 	MIDI_KEY_NAMES.push("c7");
 
-	var devices_json = "[]";
-	function sendDevices() {
-		gClient.sendArray([{"m": "devices", "list": JSON.parse(devices_json)}]);
-	}
-	gClient.on("connect", sendDevices);
-
 	(function() {
 
 		if (navigator.requestMIDIAccess) {
 			navigator.requestMIDIAccess().then(
 				function(midi) {
-					console.log(midi);
+					//console.log(midi);
 					function midimessagehandler(evt) {
 						if(!evt.target.enabled) return;
 						//console.log(evt);
@@ -2643,29 +2637,6 @@ Rect.prototype.contains = function(x, y) {
 						};
 					}
 
-					function updateDevices() {
-						var list = [];
-						if(midi.inputs.size > 0) {
-							var inputs = midi.inputs.values();
-							for(var input_it = inputs.next(); input_it && !input_it.done; input_it = inputs.next()) {
-								var input = input_it.value;
-								list.push(deviceInfo(input));
-							}
-						}
-						if(midi.outputs.size > 0) {
-							var outputs = midi.outputs.values();
-							for(var output_it = outputs.next(); output_it && !output_it.done; output_it = outputs.next()) {
-								var output = output_it.value;
-								list.push(deviceInfo(output));
-							}
-						}
-						var new_json = JSON.stringify(list);
-						if(new_json !== devices_json) {
-							devices_json = new_json;
-							sendDevices();
-						}
-					}
-
 					function plug() {
 						if(midi.inputs.size > 0) {
 							var inputs = midi.inputs.values();
@@ -2680,7 +2651,7 @@ Rect.prototype.contains = function(x, y) {
 								if(typeof input.volume === "undefined") {
 									input.volume = 1.0;
 								}
-								console.log("input", input);
+								//console.log("input", input);
 							}
 						}
 						if(midi.outputs.size > 0) {
@@ -2691,7 +2662,7 @@ Rect.prototype.contains = function(x, y) {
 								if(typeof output.volume === "undefined") {
 									output.volume = 1.0;
 								}
-								console.log("output", output);
+								//console.log("output", output);
 							}
 							gMidiOutTest = function(note_name, vel, delay_ms) {
 								var note_number = MIDI_KEY_NAMES.indexOf(note_name);
@@ -2711,7 +2682,6 @@ Rect.prototype.contains = function(x, y) {
 							}
 						}
 						showConnections(false);
-						updateDevices();
 					}
 
 					midi.addEventListener("statechange", function(evt) {
@@ -2746,7 +2716,6 @@ Rect.prototype.contains = function(x, y) {
 											input.enabled = !input.enabled;
 											evt.target.classList.toggle("enabled");
 											console.log("click", input);
-											updateDevices();
 											return;
 										}
 									}
@@ -2787,7 +2756,6 @@ Rect.prototype.contains = function(x, y) {
 											output.enabled = !output.enabled;
 											evt.target.classList.toggle("enabled");
 											console.log("click", output);
-											updateDevices();
 											return;
 										}
 									}
