@@ -243,8 +243,8 @@
                 _id: reader.readUserId(),
                 name: reader.readString(),
                 color: "#" + reader.readColor(),
-                x: reader.readUInt16(),
-                y: reader.readUInt16()
+                x: reader.readUInt16() / 65535,
+                y: reader.readUInt16() / 65535
               }
               ppl.push(participant)
               if (crown && !crownDropped && participant._id === crown.userId) crown.participantId = participant.id
@@ -278,6 +278,11 @@
               m: "t",
               t: serverTime
             })
+            break
+          }
+          case 0x03: {
+            return []
+            break
           }
         }
       }
