@@ -660,7 +660,7 @@
             writer.writeVarlong(time)
             writer.writeVarlong(messageObj.n.length)
             for (let otherTime of this.recentSentNotes.keys()) { //filter out old recentSentNotes logs in case it didn't go through for whatever reason, to prevent memory buildup
-              if (time - otherTime > 10000) this.recentSentNotes.delete(time)
+              if (time - otherTime > 10000) this.recentSentNotes.delete(otherTime)
             }
             this.recentSentNotes.set(time, messageObj.n.length)
             for (let note of messageObj.n) {
