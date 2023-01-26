@@ -1183,8 +1183,8 @@ Rect.prototype.contains = function(x, y) {
 
 	//var wssport = window.location.hostname == "www.multiplayerpiano.com" ? 443 : 8443;
 	//var gClient = new Client("wss://" + window.location.hostname + ":" + wssport);
-	//var gClient = new Client("wss://mpp.lapishusky.dev");
-	var gClient = new Client("ws://localhost:8080");
+  var gClient = new Client("wss://mpp.lapishusky.dev");
+	//var gClient = new Client("ws://localhost:8080");
 	gClient.setChannel(channel_id);
 	gClient.start();
 
