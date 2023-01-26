@@ -344,7 +344,8 @@
                   m: "p",
                   ...participant
                 })
-              } else {
+              }
+              if (mouseChanged && !userIdChanged) {
                 outArray.push({
                   m: "m",
                   id: id,
@@ -367,10 +368,140 @@
             }
             break
           }
+          case 0x05: {
+            let actionId = reader.readUInt8()
+            let channels = []
+            let message = {
+              m: "ls",
+              c: [true, false][actionId],
+              u: channels
+            }
+            let count = reader.readVarlong()
+            for (let i = count; i--;) {
+              let channel = {}
+
+              let settings = {}
+              settings.lobby = reader.readBitflag(0)
+              settings.visible = reader.readBitflag(1)
+              settings.chat = reader.readBitflag(2)
+              settings.crownsolo = reader.readBitflag(3)
+              settings["no cussing"] = reader.readBitflag(4)
+              let hasColor2 = reader.readBitflag(5)
+              reader.index++
+              settings.color = reader.readColor()
+              if (hasColor2) settings.color2 = reader.readColor()
+              channel.settings = settings
+
+              if (!settings.lobby) {
+                let crown = {}
+                crown.userId = reader.readUserId()
+                let crownDropped = reader.readBitflag(0)
+                reader.index++
+                if (crownDropped) {
+                  crown.time = reader.readVarlong()
+                  crown.startPos = {
+                    x: reader.readUInt16() / 655.35,
+                    y: reader.readUInt16() / 655.35
+                  }
+                  crown.endPos = {
+                    x: reader.readUInt16() / 655.35,
+                    y: reader.readUInt16() / 655.35
+                  }
+                } else {
+                  crown.time = 0
+                  crown.startPos = {
+                    x: 50,
+                    y: 50
+                  }
+                  crown.endPos = {
+                    x: 50,
+                    y: 50
+                  }
+                }
+                channel.crown = crown
+              }
+              
+              channel.count = reader.readVarlong()
+
+              channel._id = reader.readString()
+
+              channels.push(channel)
+            }
+            outArray.push(message)
+            break
+          }
+          case 0x06: {
+            let actionId = reader.readUInt8()
+            let ms = reader.readVarlong()
+            if (actionId === 0x00) {
+              let id = reader.readVarlong().toString()
+              outArray.push({
+                m: "kickban",
+                p: id,
+                ms
+              })
+              if (id === this.participantId) {
+                outArray.push({
+                  m: "notification",
+                  title: "Notice",
+                  text: `Banned from ${this.channelName} for ${Math.floor(ms / 60000)} minutes.`,
+                  duration: 7000,
+                  target: "#room",
+                  class: "short"
+                })
+                break
+              }
+              if (!this.ppl.has(id)) break
+              let participant = this.ppl.get(id)
+              let crownHolder = null
+              for (let participant of this.ppl.values()) {
+                if (participant._id === this.channelCrown.userId) {
+                  crownHolder = participant
+                  break
+                }
+              }
+              outArray.push({
+                m: "notification",
+                title: "Notice",
+                text: `${crownHolder.name} banned ${participant.name} from the channel for ${Math.floor(ms / 60000)} minutes.`,
+                duration: 7000,
+                target: "#room",
+                class: "short"
+              })
+              if (crownHolder === participant) {
+                outArray.push({
+                  m: "notification",
+                  title: "Certificate of Award",
+                  text: `Let it be known that ${participant.name} kickbanned him/her self.`,
+                  duration: 7000,
+                  target: "#room"
+                })
+              }
+            } else {
+              let channelName = reader.readString()
+              outArray.push({
+                m: "kickban",
+                ms
+              })
+              outArray.push({
+                m: "notification",
+                title: "Notice",
+                text: `Currently banned from ${channelName} for ${Math.ceil(ms / 60000)} minutes.`,
+                duration: 7000,
+                target: "#room",
+                class: "short"
+              })
+            }
+            break
+          }
           case 0x07: {
             let id = reader.readVarlong().toString()
             let time = reader.readVarlong()
             let message = reader.readString()
+            //in rare cases, a user can send a chat message, leave the channel, then another user joins the channel, all within a single tick
+            //if this happens in that order, the user who joined will be sent this chat message from a participant they don't know about, which could cause errors
+            //this prevents those errors by cancelling the message
+            if (!this.ppl.has(id)) break
             outArray.push({
               m: "a",
               a: message,
@@ -403,6 +534,7 @@
               if (delay) note.d = delay
               notes.push(note)
             }
+            if (!this.ppl.has(participantId)) break
             outArray.push({
               m: "n",
               p: participantId,
@@ -494,28 +626,23 @@
           case "ch": {
             writer.writeUInt8(0x01)
             writer.writeString(messageObj._id)
-            if (messageObj.set) {
-              writer.writeUInt8(0b1)
-              let settings = {
-                visible: true,
-                color: "#3b5054",
-                chat: true,
-                crownsolo: false,
-                "no cussing": false
-              }
-              Object.assign(settings, messageObj.set)
-              let bitflags = 0
-              if (settings.visible) bitflags = bitflags | 0b10
-              if (settings.chat) bitflags = bitflags | 0b100
-              if (settings.crownsolo) bitflags = bitflags | 0b1000
-              if (settings["no cussing"]) bitflags = bitflags | 0b10000
-              if (settings.color2) bitflags = bitflags | 0b100000
-              writer.writeUInt8(bitflags)
-              writer.writeColor(settings.color)
-              if (settings.color2) writer.writeColor(settings.color2)
-            } else {
-              writer.writeUInt8(0b110)
-            }
+            let settings = {
+							visible: true,
+							color: "#3b5054",
+							chat: true,
+							crownsolo: false,
+							"no cussing": false
+						}
+						if (messageObj.set) Object.assign(settings, messageObj.set)
+						let bitflags = 0
+						if (settings.visible) bitflags = bitflags | 0b10
+						if (settings.chat) bitflags = bitflags | 0b100
+						if (settings.crownsolo) bitflags = bitflags | 0b1000
+						if (settings["no cussing"]) bitflags = bitflags | 0b10000
+						if (settings.color2) bitflags = bitflags | 0b100000
+						writer.writeUInt8(bitflags)
+						writer.writeColor(settings.color)
+						if (settings.color2) writer.writeColor(settings.color2)
             break
           }
           case "t": {
@@ -594,6 +721,27 @@
             if ("color2" in messageObj.set) writer.writeColor(messageObj.set.color2)
             break
           }
+          case "kickban": {
+            writer.writeUInt8(0x09)
+            writer.writeUserId(messageObj._id)
+            writer.writeVarlong(messageObj.ms)
+            break
+          }
+          case "unban": {
+            writer.writeUInt8(0x0a)
+            writer.writeUserId(messageObj._id)
+            break
+          }
+          case "+ls": {
+            writer.writeUInt8(0x0b)
+            writer.writeUInt8(0x00)
+            break
+          }
+          case "-ls": {
+            writer.writeUInt8(0x0b)
+            writer.writeUInt8(0x01)
+            break
+          }
         }
       }
       return writer.getBuffer()
@@ -616,5 +764,5 @@
     }
   }
 
-  window.BinaryTranslator = BinaryTranslator
+  this.BinaryTranslator = BinaryTranslator
 })()

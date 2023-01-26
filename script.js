@@ -2599,6 +2599,7 @@ Rect.prototype.contains = function(x, y) {
 						var channel = evt.data[0] & 0xf;
 						var cmd = evt.data[0] >> 4;
 						var note_number = evt.data[1];
+						if (note_number < 21 || note_number > 108) return;
 						var vel = evt.data[2];
 						//console.log(channel, cmd, note_number, vel);
 						if(cmd == 8 || (cmd == 9 && vel == 0)) {
@@ -2608,7 +2609,7 @@ Rect.prototype.contains = function(x, y) {
 							// NOTE_ON
 							if(evt.target.volume !== undefined)
 								vel *= evt.target.volume;
-							press(MIDI_KEY_NAMES[note_number - 9 + MIDI_TRANSPOSE], vel / 100);
+							press(MIDI_KEY_NAMES[note_number - 9 + MIDI_TRANSPOSE], vel / 127);
 						} else if(cmd == 11) {
 							// CONTROL_CHANGE
 							if(!gAutoSustain) {
