@@ -514,11 +514,6 @@
             let participantId = reader.readVarlong().toString()
             let time = reader.readVarlong()
             let count = reader.readVarlong()
-            if (participantId === this.participantId && this.recentSentNotes.get(time) === count) { //ignore notes we've sent
-              this.recentSentNotes.delete(time)
-              reader.index += count * 3
-              break
-            }
             let notes = []
             for (let i = count; i--;) {
               let note = {
@@ -533,6 +528,11 @@
               let delay = reader.readUInt8()
               if (delay) note.d = delay
               notes.push(note)
+            }
+            if (participantId === this.participantId && this.recentSentNotes.get(time) === count) { //ignore notes we've sent
+              this.recentSentNotes.delete(time)
+              reader.index += count * 3
+              break
             }
             if (!this.ppl.has(participantId)) break
             outArray.push({
@@ -659,8 +659,8 @@
             let time = Math.round(messageObj.t)
             writer.writeVarlong(time)
             writer.writeVarlong(messageObj.n.length)
-            for (let time of this.recentSentNotes.keys()) { //filter out old recentSentNotes logs in case it didn't go through for whatever reason, to prevent memory buildup
-              if (time - time < 10000) this.recentSentNotes.delete(time)
+            for (let otherTime of this.recentSentNotes.keys()) { //filter out old recentSentNotes logs in case it didn't go through for whatever reason, to prevent memory buildup
+              if (time - otherTime > 10000) this.recentSentNotes.delete(time)
             }
             this.recentSentNotes.set(time, messageObj.n.length)
             for (let note of messageObj.n) {
