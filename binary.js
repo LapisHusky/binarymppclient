@@ -627,22 +627,22 @@
             writer.writeUInt8(0x01)
             writer.writeString(messageObj._id)
             let settings = {
-							visible: true,
-							color: "#3b5054",
-							chat: true,
-							crownsolo: false,
-							"no cussing": false
-						}
-						if (messageObj.set) Object.assign(settings, messageObj.set)
-						let bitflags = 0
-						if (settings.visible) bitflags = bitflags | 0b10
-						if (settings.chat) bitflags = bitflags | 0b100
-						if (settings.crownsolo) bitflags = bitflags | 0b1000
-						if (settings["no cussing"]) bitflags = bitflags | 0b10000
-						if (settings.color2) bitflags = bitflags | 0b100000
-						writer.writeUInt8(bitflags)
-						writer.writeColor(settings.color)
-						if (settings.color2) writer.writeColor(settings.color2)
+              visible: true,
+              color: "#3b5054",
+              chat: true,
+              crownsolo: false,
+              "no cussing": false
+            }
+            if (messageObj.set) Object.assign(settings, messageObj.set)
+            let bitflags = 0
+            if (settings.visible) bitflags = bitflags | 0b10
+            if (settings.chat) bitflags = bitflags | 0b100
+            if (settings.crownsolo) bitflags = bitflags | 0b1000
+            if (settings["no cussing"]) bitflags = bitflags | 0b10000
+            if (settings.color2) bitflags = bitflags | 0b100000
+            writer.writeUInt8(bitflags)
+            writer.writeColor(settings.color)
+            if (settings.color2) writer.writeColor(settings.color2)
             break
           }
           case "t": {
